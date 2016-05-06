@@ -53,6 +53,7 @@
 						<div class="nav">
 							<ul>
 								<li><a href="reloadconfig.xsl">Reload Configuration</a></li>
+								<li><a href="editconfig.xsl">Edit Configuration</a></li>
 							</ul>
 						</div>
 						<table class="table-block">

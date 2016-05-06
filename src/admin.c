@@ -71,10 +71,12 @@
 #define COMMAND_RAW_LISTSTREAM              103
 #define COMMAND_PLAINTEXT_LISTSTREAM        104
 #define COMMAND_RAW_QUEUE_RELOAD            105
+#define COMMAND_RAW_EDIT_CONFIG             106
 #define COMMAND_TRANSFORMED_LIST_MOUNTS     201
 #define COMMAND_TRANSFORMED_STATS           202
 #define COMMAND_TRANSFORMED_LISTSTREAM      203
 #define COMMAND_TRANSFORMED_QUEUE_RELOAD    205
+#define COMMAND_TRANSFORMED_EDIT_CONFIG     206
 
 /* Client management commands (block 301-399 and 401-499) */
 #define COMMAND_RAW_KILL_CLIENT             301
@@ -119,6 +121,8 @@
 #define DEFAULT_RAW_REQUEST                 ""
 #define DEFAULT_TRANSFORMED_REQUEST         ""
 #define BUILDM3U_RAW_REQUEST                "buildm3u"
+#define EDIT_CONFIG_RAW_REQUEST             "editconfig"
+#define EDIT_CONFIG_TRANSFORMED_REQUEST     "editconfig.xsl"
 
 typedef struct admin_command_tag {
     const int   id;
@@ -163,7 +167,9 @@ static const admin_command_t commands[] = {
  {COMMAND_BUILDM3U,                    BUILDM3U_RAW_REQUEST,               ADMINTYPE_MOUNT,   RAW},
  {COMMAND_TRANSFORMED_STATS,           DEFAULT_TRANSFORMED_REQUEST,        ADMINTYPE_HYBRID,  TRANSFORMED},
  {COMMAND_TRANSFORMED_STATS,           DEFAULT_RAW_REQUEST,                ADMINTYPE_HYBRID,  TRANSFORMED},
- {COMMAND_ANY,                         "*",                                ADMINTYPE_GENERAL, TRANSFORMED} /* for ACL framework */
+ {COMMAND_ANY,                         "*",                                ADMINTYPE_GENERAL, TRANSFORMED}, /* for ACL framework */
+ {COMMAND_RAW_EDIT_CONFIG,             EDIT_CONFIG_RAW_REQUEST,            ADMINTYPE_GENERAL, RAW},
+ {COMMAND_TRANSFORMED_EDIT_CONFIG,     EDIT_CONFIG_TRANSFORMED_REQUEST,    ADMINTYPE_GENERAL, TRANSFORMED},
 };
 
 int admin_get_command(const char *command)
@@ -209,6 +215,7 @@ static void command_kill_source(client_t *client, source_t *source,
         int response);
 static void command_updatemetadata(client_t *client, source_t *source,
         int response);
+static void command_edit_config(client_t *client, int response);
 static void admin_handle_mount_request(client_t *client, source_t *source);
 static void admin_handle_general_request(client_t *client);
 
@@ -489,6 +496,12 @@ static void admin_handle_general_request(client_t *client)
         break;
         case COMMAND_RAW_MANAGEAUTH:
             command_manageauth(client, RAW);
+        break;
+        case COMMAND_RAW_EDIT_CONFIG:
+            command_edit_config(client, RAW);
+        break;
+        case COMMAND_TRANSFORMED_EDIT_CONFIG:
+            command_edit_config(client, TRANSFORMED);
         break;
         default:
             ICECAST_LOG_WARN("General admin request not recognised");
@@ -1201,5 +1214,52 @@ static void command_updatemetadata(client_t *client,
 
     admin_send_response(doc, client, response,
         UPDATEMETADATA_TRANSFORMED_REQUEST);
+    xmlFreeDoc(doc);
+}
+
+static void command_edit_config(client_t *client, int response)
+{
+    xmlDocPtr doc;
+    xmlNodePtr xmlnode;
+    xmlNodePtr general;
+    xmlNodePtr limits;
+    char tmp_str[15];
+    ice_config_t *config;
+
+    config = config_get_config();
+    config_release_config();
+
+    doc = xmlNewDoc (XMLSTR("1.0"));
+    xmlnode = xmlNewDocNode(doc, NULL, XMLSTR("icestats"), NULL);
+    xmlDocSetRootElement(doc, xmlnode);
+
+    general = xmlNewChild(xmlnode, NULL, XMLSTR("general"), NULL);
+
+    xmlNewChild(general, NULL, XMLSTR("hostname"), XMLSTR(config->hostname));
+    xmlNewChild(general, NULL, XMLSTR("location"), XMLSTR(config->location));
+    xmlNewChild(general, NULL, XMLSTR("admin"), XMLSTR(config->admin));
+    xmlNewChild(general, NULL, XMLSTR("server-id"), XMLSTR(config->server_id));
+
+    limits = xmlNewChild(xmlnode, NULL, XMLSTR("limits"), NULL);
+
+    sprintf(tmp_str, "%d", config->client_limit);
+    xmlNewChild(limits, NULL, XMLSTR("clients"), XMLSTR(tmp_str));
+
+    sprintf(tmp_str, "%d", config->source_limit);
+    xmlNewChild(limits, NULL, XMLSTR("sources"), XMLSTR(tmp_str));
+
+    sprintf(tmp_str, "%d", config->client_timeout);
+    xmlNewChild(limits, NULL, XMLSTR("client-timeout"), XMLSTR(tmp_str));
+
+    sprintf(tmp_str, "%d", config->header_timeout);
+    xmlNewChild(limits, NULL, XMLSTR("header-timeout"), XMLSTR(tmp_str));
+
+    sprintf(tmp_str, "%d", config->source_timeout);
+    xmlNewChild(limits, NULL, XMLSTR("source-timeout"), XMLSTR(tmp_str));
+
+    sprintf(tmp_str, "%d", config->burst_size);
+    xmlNewChild(limits, NULL, XMLSTR("burst-size"), XMLSTR(tmp_str));
+
+    admin_send_response(doc, client, response, EDIT_CONFIG_TRANSFORMED_REQUEST);
     xmlFreeDoc(doc);
 }
