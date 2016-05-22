@@ -22,61 +22,76 @@
 					<h2>Configuration</h2>
 
 					<div class="article">
-						<h3>General Settings</h3>
+						<form method="post">
+							<h3>General Settings</h3>
 
-						<table class="table-block">
-							<thead>
-								<tr>
-									<th>Key</th>
-									<th>Value</th>
-								</tr>
-							</thead>
-							<tbody>
-								<xsl:for-each select="/icestats/general/*">
+							<table class="table-block">
+								<thead>
 									<tr>
-										<td><xsl:value-of select="name()" /></td>
-										<td><xsl:value-of select="text()" /></td>
+										<th>Key</th>
+										<th>Value</th>
 									</tr>
-								</xsl:for-each>
-							</tbody>
-						</table>
+								</thead>
+								<tbody>
+									<xsl:for-each select="/icestats/general/*">
+										<tr>
+											<td>
+												<xsl:value-of select="name()" />
+											</td>
+											<td>
+												<input type="text">
+													<xsl:attribute name="value">
+														<xsl:value-of select="text()" />
+													</xsl:attribute>
+													<xsl:attribute name="placeholder">
+														<xsl:value-of select="text()" />
+													</xsl:attribute>
+													<xsl:attribute name="name">
+														<xsl:value-of select="name()" />
+													</xsl:attribute>
+												</input>
+											</td>
+										</tr>
+									</xsl:for-each>
+								</tbody>
+							</table>
 
-						<h3>Limits</h3>
+							<h3>Limits</h3>
 
-						<table class="table-block">
-							<thead>
-								<tr>
-									<th>Key</th>
-									<th>Value</th>
-								</tr>
-							</thead>
-							<tbody>
-								<xsl:for-each select="/icestats/limits/*">
+							<table class="table-block">
+								<thead>
 									<tr>
-										<td><xsl:value-of select="name()" /></td>
-										<td><xsl:value-of select="text()" /></td>
+										<th>Key</th>
+										<th>Value</th>
 									</tr>
-								</xsl:for-each>
-							</tbody>
-						</table>
+								</thead>
+								<tbody>
+									<xsl:for-each select="/icestats/limits/*">
+										<tr>
+											<td>
+												<xsl:value-of select="name()" />
+											</td>
+											<td>
+												<input type="text">
+													<xsl:attribute name="value">
+														<xsl:value-of select="text()" />
+													</xsl:attribute>
+													<xsl:attribute name="placeholder">
+														<xsl:value-of select="text()" />
+													</xsl:attribute>
+													<xsl:attribute name="name">
+														<xsl:value-of select="name()" />
+													</xsl:attribute>
+												</input>
+											</td>
+										</tr>
+									</xsl:for-each>
+								</tbody>
+							</table>
+
+							<input type="submit" value="Update Configuration" />
+						</form>
 					</div>
-
-					<xsl:for-each select="source">
-						<div class="article">
-							<h3>Mountpoint  <xsl:value-of select="@mount" /></h3>
-							<!-- Mount nav -->
-							<xsl:call-template name="mountnav" />
-							<form method="get" action="/admin/metadata.xsl">
-								<label for="metadata" class="hidden">Metadata</label>
-								<input type="text" id="metadata" name="song" value="" placeholder="Click to edit" required="required" />
-								<input type="hidden" name="mount" value="{@mount}" />
-								<input type="hidden" name="mode" value="updinfo" />
-								<input type="hidden" name="charset" value="UTF-8" />
-								<input type="submit" value="Update Metadata" />
-							</form>
-						</div>
-					</xsl:for-each>
-
 				</div>
 
 				<!-- Footer -->

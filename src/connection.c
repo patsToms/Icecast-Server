@@ -992,6 +992,46 @@ static void _handle_get_request(client_t *client, char *uri) {
     }
 }
 
+static void _handle_post_request(client_t *client, char *uri) {
+
+    ICECAST_LOG_DEBUG("Got client %p with URI %H", client, uri);
+
+    /*
+     * clients use HTTP POST when are going to update stats
+     */
+
+    stats_event_inc(NULL, "client_connections");
+
+    /* Dispatch all admin requests */
+    if ((strcmp(uri, "/admin.cgi") == 0) ||
+        (strncmp(uri, "/admin/", 7) == 0)) {
+
+        ICECAST_LOG_DEBUG("Client %p requesting admin interface.", client);
+        admin_handle_request(client, uri);
+        return;
+    }
+
+    /* this is a web/ request. let's check if we are allowed to do that. */
+    if (acl_test_web(client->acl) != ACL_POLICY_ALLOW) {
+        /* doesn't seem so, sad client :( */
+        if (client->protocol == ICECAST_PROTOCOL_SHOUTCAST) {
+            client_destroy(client);
+        } else {
+            client_send_error(client, 401, 1, "You need to authenticate\r\n");
+        }
+        return;
+    }
+
+    if (util_check_valid_extension(uri) == XSLT_CONTENT) {
+        /* If the file exists, then transform it, otherwise, write a 404 */
+        ICECAST_LOG_DEBUG("Stats request, sending XSL transformed stats");
+        stats_transform_xslt(client, uri);
+        return;
+    }
+
+    fserve_client_create(client, uri);
+}
+
 static void _handle_shoutcast_compatible(client_queue_t *node)
 {
     char *http_compliant;
@@ -1168,6 +1208,9 @@ static void _handle_authed_client(client_t *client, void *uri, auth_result resul
         break;
         case httpp_req_get:
             _handle_get_request(client, uri);
+        break;
+        case httpp_req_post:
+            _handle_post_request(client, uri);
         break;
         default:
             ICECAST_LOG_ERROR("Wrong request type from client");

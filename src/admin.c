@@ -1227,6 +1227,16 @@ static void command_edit_config(client_t *client, int response)
     ice_config_t *config;
 
     config = config_get_config();
+
+    if (client->parser->req_type == httpp_req_post) {
+
+        const char *hostname = httpp_get_data_param(client->parser, "hostname");
+        if (hostname != NULL) {
+            /* just for testing */
+            config->hostname = (char *)hostname;
+        }
+    }
+
     config_release_config();
 
     doc = xmlNewDoc (XMLSTR("1.0"));
