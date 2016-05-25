@@ -1220,6 +1220,8 @@ static void command_updatemetadata(client_t *client,
 static void command_edit_config(client_t *client, int response)
 {
     xmlDocPtr doc;
+    xmlDocPtr  config_doc;
+    xmlXPathContextPtr config_xpathCtx;
     xmlNodePtr xmlnode;
     xmlNodePtr general;
     xmlNodePtr limits;
@@ -1228,13 +1230,69 @@ static void command_edit_config(client_t *client, int response)
 
     config = config_get_config();
 
+    /*
+     * TODO: do refactoring
+     */
     if (client->parser->req_type == httpp_req_post) {
 
-        const char *hostname = httpp_get_data_param(client->parser, "hostname");
-        if (hostname != NULL) {
-            /* just for testing */
-            config->hostname = (char *)hostname;
+        /*
+         * Copy from cfgfile.c
+         */
+        config_doc = xmlParseFile(config->config_filename);
+        if (config_doc == NULL)
+            return; /* config file is missing? */
+
+        config_xpathCtx = xmlXPathNewContext(config_doc);
+        if(config_xpathCtx == NULL) {
+            xmlFreeDoc(config_doc);
+            return; /* Error: unable to create new XPath context */
         }
+
+        avl_node *avlnode;
+        char xpathExpr[255];
+
+        avlnode = avl_get_first(client->parser->datavars);
+
+        while (avlnode) {
+
+            xmlXPathObjectPtr config_xpathObj;
+
+            http_var_t *form_var;
+            form_var = avlnode->key;
+
+            if (strcmp(form_var->name, "hostname") == 0) {
+                strcpy(xpathExpr, "/icecast/hostname");
+
+                config_xpathObj = xmlXPathEvalExpression(
+                    (const xmlChar*)xpathExpr, config_xpathCtx);
+
+                char *config_var = (char *)xmlNodeGetContent(config_xpathObj->nodesetval->nodeTab[0]);
+
+                if (config_xpathObj == NULL) {
+                    /* TODO: error */
+                    continue;
+                }
+
+                if (strcmp(config_var, form_var->value) != 0) {
+                    config->hostname = form_var->value;
+                    xmlNodeSetContent(config_xpathObj->nodesetval->nodeTab[0], (xmlChar *)form_var->value);
+                }
+
+                xmlXPathFreeObject(config_xpathObj);
+            }
+
+            avlnode = avl_get_next(avlnode);
+        }
+
+        FILE *f;
+        f = fopen(config->config_filename, "wb");
+
+        if (xmlDocDump(f, config_doc) == -1) {
+            /* TODO: error */
+        }
+
+        xmlXPathFreeContext(config_xpathCtx);
+        xmlFreeDoc(config_doc);
     }
 
     config_release_config();

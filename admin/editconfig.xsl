@@ -80,7 +80,7 @@
 														<xsl:value-of select="text()" />
 													</xsl:attribute>
 													<xsl:attribute name="name">
-														<xsl:value-of select="name()" />
+														<xsl:value-of select="name(..)" />.<xsl:value-of select="name()" />
 													</xsl:attribute>
 												</input>
 											</td>
