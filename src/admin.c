@@ -1221,66 +1221,32 @@ static void command_edit_config(client_t *client, int response)
 {
     xmlDocPtr doc;
     xmlDocPtr  config_doc;
-    xmlXPathContextPtr config_xpathCtx;
     xmlNodePtr xmlnode;
     xmlNodePtr general;
     xmlNodePtr limits;
     char tmp_str[15];
     ice_config_t *config;
+    http_var_t *form_var;
 
     config = config_get_config();
 
-    /*
-     * TODO: do refactoring
-     */
+
     if (client->parser->req_type == httpp_req_post) {
 
-        /*
-         * Copy from cfgfile.c
-         */
         config_doc = xmlParseFile(config->config_filename);
         if (config_doc == NULL)
             return; /* config file is missing? */
 
-        config_xpathCtx = xmlXPathNewContext(config_doc);
-        if(config_xpathCtx == NULL) {
-            xmlFreeDoc(config_doc);
-            return; /* Error: unable to create new XPath context */
-        }
-
         avl_node *avlnode;
-        char xpathExpr[255];
-
         avlnode = avl_get_first(client->parser->datavars);
 
         while (avlnode) {
-
-            xmlXPathObjectPtr config_xpathObj;
-
-            http_var_t *form_var;
             form_var = avlnode->key;
-
-            if (strcmp(form_var->name, "hostname") == 0) {
-                strcpy(xpathExpr, "/icecast/hostname");
-
-                config_xpathObj = xmlXPathEvalExpression(
-                    (const xmlChar*)xpathExpr, config_xpathCtx);
-
-                char *config_var = (char *)xmlNodeGetContent(config_xpathObj->nodesetval->nodeTab[0]);
-
-                if (config_xpathObj == NULL) {
-                    /* TODO: error */
-                    continue;
-                }
-
-                if (strcmp(config_var, form_var->value) != 0) {
-                    config->hostname = form_var->value;
-                    xmlNodeSetContent(config_xpathObj->nodesetval->nodeTab[0], (xmlChar *)form_var->value);
-                }
-
-                xmlXPathFreeObject(config_xpathObj);
-            }
-
+            config_doc_update_var(
+                config_doc,
+                config,
+                (const char*)form_var->name,
+                (const char*)form_var->value);
             avlnode = avl_get_next(avlnode);
         }
 
@@ -1291,7 +1257,6 @@ static void command_edit_config(client_t *client, int response)
             /* TODO: error */
         }
 
-        xmlXPathFreeContext(config_xpathCtx);
         xmlFreeDoc(config_doc);
     }
 
@@ -1305,8 +1270,9 @@ static void command_edit_config(client_t *client, int response)
 
     xmlNewChild(general, NULL, XMLSTR("hostname"), XMLSTR(config->hostname));
     xmlNewChild(general, NULL, XMLSTR("location"), XMLSTR(config->location));
-    xmlNewChild(general, NULL, XMLSTR("admin"), XMLSTR(config->admin));
-    xmlNewChild(general, NULL, XMLSTR("server-id"), XMLSTR(config->server_id));
+
+    sprintf(tmp_str, "%d", config->fileserve);
+    xmlNewChild(general, NULL, XMLSTR("fileserve"), XMLSTR(tmp_str));
 
     limits = xmlNewChild(xmlnode, NULL, XMLSTR("limits"), NULL);
 
@@ -1315,6 +1281,9 @@ static void command_edit_config(client_t *client, int response)
 
     sprintf(tmp_str, "%d", config->source_limit);
     xmlNewChild(limits, NULL, XMLSTR("sources"), XMLSTR(tmp_str));
+
+    sprintf(tmp_str, "%d", config->queue_size_limit);
+    xmlNewChild(limits, NULL, XMLSTR("queue-size"), XMLSTR(tmp_str));
 
     sprintf(tmp_str, "%d", config->client_timeout);
     xmlNewChild(limits, NULL, XMLSTR("client-timeout"), XMLSTR(tmp_str));

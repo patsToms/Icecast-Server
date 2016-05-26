@@ -25,6 +25,7 @@
 #endif
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
+ #include <libxml/xpath.h>
 
 #include "common/thread/thread.h"
 #include "cfgfile.h"
@@ -2334,4 +2335,94 @@ listener_t *config_get_listen_sock(ice_config_t *config, connection_t *con)
         }
     }
     return listener;
+}
+
+int config_doc_update_var(xmlDocPtr doc,
+                          ice_config_t *config,
+                          const char *name,
+                          const char *value)
+{
+    if (name == NULL || strlen(name) > 245) { /* path max length is 255 */
+        return 1;
+    }
+
+    if (strcmp(name, "hostname") == 0) {
+        config_set_hostname(doc, config, value);
+    } else if (strcmp(name, "location") == 0) {
+        config_set_location(doc, config, value);
+    } else {
+        return 1;
+    }
+
+    return 0;
+}
+
+int config_set_hostname(xmlDocPtr doc, ice_config_t *config, const char *hostname)
+{
+    xmlNodePtr hostname_node;
+    xmlChar *hostname_value;
+
+    hostname_node = config_xml_get_node(doc, XMLSTR("/icecast/hostname"));
+
+    /* TODO: this value still have encoded utf-8 chars */
+    hostname_value = xmlNodeGetContent(hostname_node);
+
+    if (strcmp((const char*)hostname_value, hostname) != 0) {
+        config->hostname = strdup(hostname);
+        xmlNodeSetContent(hostname_node, (const xmlChar *)hostname);
+    }
+
+    return 0;
+}
+
+int config_set_location(xmlDocPtr doc,
+                        ice_config_t *config,
+                        const char *location)
+{
+    xmlNodePtr location_node;
+    xmlChar *location_value;
+
+    location_node = config_xml_get_node(doc, XMLSTR("/icecast/location"));
+
+    location_value = xmlNodeGetContent(location_node);
+
+    if (strcmp((const char*)location_value, location) != 0) {
+        config->location = strdup(location);
+        xmlNodeSetContent(location_node, (const xmlChar *)location);
+    }
+
+    return 0;
+}
+
+xmlNodePtr config_xml_get_node(xmlDocPtr doc, const xmlChar *xml_path)
+{
+    xmlXPathContextPtr xPathCtx;
+    xmlXPathObjectPtr xPathObj;
+    xmlNodePtr node;
+
+    xPathCtx = xmlXPathNewContext(doc);
+    if(xPathCtx == NULL) {
+        xmlXPathFreeContext(xPathCtx);
+        return NULL; /* Error: unable to create new XPath context */
+    }
+
+    xPathObj = xmlXPathEvalExpression(xml_path, xPathCtx);
+    if (xPathObj == NULL) {
+        xmlXPathFreeObject(xPathObj);
+        xmlXPathFreeContext(xPathCtx);
+        return NULL;
+    }
+
+    if (xPathObj->nodesetval->nodeNr < 1) {
+        xmlXPathFreeObject(xPathObj);
+        xmlXPathFreeContext(xPathCtx);
+        return NULL;
+    }
+
+    node = xPathObj->nodesetval->nodeTab[0];
+
+    xmlXPathFreeObject(xPathObj);
+    xmlXPathFreeContext(xPathCtx);
+
+    return node;
 }
