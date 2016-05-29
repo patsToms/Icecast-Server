@@ -22,6 +22,18 @@
 					<h2>Configuration</h2>
 
 					<div class="article">
+						<xsl:if test="/icestats/errors>0">
+							<h3>Errors</h3>
+
+							<ul>
+								<xsl:for-each select="/icestats/errors/*">
+									<li>
+										Problem saving <xsl:value-of select="name()" /> field
+									</li>
+								</xsl:for-each>
+							</ul>
+						</xsl:if>
+
 						<form method="post">
 							<h3>General Settings</h3>
 
@@ -44,7 +56,7 @@
 														<xsl:value-of select="text()" />
 													</xsl:attribute>
 													<xsl:attribute name="placeholder">
-														<xsl:value-of select="text()" />
+														<xsl:value-of select="@placeholder" />
 													</xsl:attribute>
 													<xsl:attribute name="name">
 														<xsl:value-of select="name()" />

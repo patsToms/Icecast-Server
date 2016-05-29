@@ -2347,14 +2347,14 @@ int config_doc_update_var(xmlDocPtr doc,
     }
 
     if (strcmp(name, "hostname") == 0) {
-        config_set_hostname(doc, config, value);
+        return config_set_hostname(doc, config, value);
     } else if (strcmp(name, "location") == 0) {
-        config_set_location(doc, config, value);
-    } else {
-        return 1;
+        return config_set_location(doc, config, value);
+    } else if (strcmp(name, "fileserve") == 0) {
+        return config_set_fileserve(doc, config, value);
     }
 
-    return 0;
+    return 1;
 }
 
 int config_set_hostname(xmlDocPtr doc, ice_config_t *config, const char *hostname)
@@ -2364,11 +2364,18 @@ int config_set_hostname(xmlDocPtr doc, ice_config_t *config, const char *hostnam
 
     hostname_node = config_xml_get_node(doc, XMLSTR("/icecast/hostname"));
 
+    if (hostname_node == NULL) {
+        hostname_node = xmlNewChild(
+            xmlDocGetRootElement(doc),
+            NULL,
+            XMLSTR("hostname"),
+            XMLSTR(hostname));
+    }
+
     /* TODO: this value still have encoded utf-8 chars */
     hostname_value = xmlNodeGetContent(hostname_node);
 
     if (strcmp((const char*)hostname_value, hostname) != 0) {
-        config->hostname = strdup(hostname);
         xmlNodeSetContent(hostname_node, (const xmlChar *)hostname);
     }
 
@@ -2387,12 +2394,38 @@ int config_set_location(xmlDocPtr doc,
     location_value = xmlNodeGetContent(location_node);
 
     if (strcmp((const char*)location_value, location) != 0) {
-        config->location = strdup(location);
         xmlNodeSetContent(location_node, (const xmlChar *)location);
     }
 
     return 0;
 }
+
+int config_set_fileserve(xmlDocPtr doc,
+                        ice_config_t *config,
+                        const char *flag)
+{
+    xmlNodePtr fileserve_node;
+    xmlChar *fileserve_value;
+
+    if (flag == NULL) {
+        return 1;
+    }
+
+    if ( (strcmp(flag, "1") != 0) && (strcmp(flag, "0") != 0) ) {
+        return 1;
+    }
+
+    fileserve_node = config_xml_get_node(doc, XMLSTR("/icecast/fileserve"));
+
+    fileserve_value = xmlNodeGetContent(fileserve_node);
+
+    if (strcmp((const char*)fileserve_value, flag) != 0) {
+        xmlNodeSetContent(fileserve_node, (const xmlChar *)flag);
+    }
+
+    return 0;
+}
+
 
 xmlNodePtr config_xml_get_node(xmlDocPtr doc, const xmlChar *xml_path)
 {

@@ -1223,30 +1223,43 @@ static void command_edit_config(client_t *client, int response)
     xmlDocPtr  config_doc;
     xmlNodePtr xmlnode;
     xmlNodePtr general;
+    xmlNodePtr errors;
     xmlNodePtr limits;
+    xmlNodePtr tmp_node;
     char tmp_str[15];
     ice_config_t *config;
     http_var_t *form_var;
+    int status;
+
+    doc = xmlNewDoc(XMLSTR("1.0"));
+    xmlnode = xmlNewDocNode(doc, NULL, XMLSTR("icestats"), NULL);
+    xmlDocSetRootElement(doc, xmlnode);
+
+    errors = xmlNewChild(xmlnode, NULL, XMLSTR("errors"), NULL);
 
     config = config_get_config();
 
+    config_doc = xmlParseFile(config->config_filename);
+    if (config_doc == NULL)
+        return; /* config file is missing? */
 
     if (client->parser->req_type == httpp_req_post) {
-
-        config_doc = xmlParseFile(config->config_filename);
-        if (config_doc == NULL)
-            return; /* config file is missing? */
 
         avl_node *avlnode;
         avlnode = avl_get_first(client->parser->datavars);
 
         while (avlnode) {
             form_var = avlnode->key;
-            config_doc_update_var(
+            status = config_doc_update_var(
                 config_doc,
                 config,
                 (const char*)form_var->name,
                 (const char*)form_var->value);
+
+            if (status != 0) {
+                xmlNewChild(errors, NULL, XMLSTR(form_var->name), XMLSTR(form_var->value));
+            }
+
             avlnode = avl_get_next(avlnode);
         }
 
@@ -1257,18 +1270,28 @@ static void command_edit_config(client_t *client, int response)
             /* TODO: error */
         }
 
-        xmlFreeDoc(config_doc);
+
+        config_reread_config();
     }
 
     config_release_config();
 
-    doc = xmlNewDoc (XMLSTR("1.0"));
-    xmlnode = xmlNewDocNode(doc, NULL, XMLSTR("icestats"), NULL);
-    xmlDocSetRootElement(doc, xmlnode);
-
     general = xmlNewChild(xmlnode, NULL, XMLSTR("general"), NULL);
 
-    xmlNewChild(general, NULL, XMLSTR("hostname"), XMLSTR(config->hostname));
+    const char *xml_val = (char *)xmlNodeGetContent(config_xml_get_node(config_doc, XMLSTR("/icecast/hostname")));
+
+    tmp_node = xmlNewChild(general, NULL, XMLSTR("hostname"), NULL);
+
+    if (xml_val == NULL) {
+        xml_val = "";
+    }
+
+    if (strcmp(xml_val, config->hostname) == 0) {
+        xmlNodeSetContent(tmp_node, XMLSTR(config->hostname));
+    }
+
+    xmlSetProp(tmp_node, XMLSTR("placeholder"), XMLSTR(config->hostname));
+
     xmlNewChild(general, NULL, XMLSTR("location"), XMLSTR(config->location));
 
     sprintf(tmp_str, "%d", config->fileserve);
@@ -1298,5 +1321,7 @@ static void command_edit_config(client_t *client, int response)
     xmlNewChild(limits, NULL, XMLSTR("burst-size"), XMLSTR(tmp_str));
 
     admin_send_response(doc, client, response, EDIT_CONFIG_TRANSFORMED_REQUEST);
+
+    xmlFreeDoc(config_doc);
     xmlFreeDoc(doc);
 }

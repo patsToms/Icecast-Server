@@ -289,6 +289,7 @@ ice_config_t *config_get_config_unlocked(void);
 int config_doc_update_var(xmlDocPtr doc, ice_config_t *config, const char *name, const char *value);
 int config_set_hostname(xmlDocPtr doc, ice_config_t *config, const char *hostname);
 int config_set_location(xmlDocPtr doc, ice_config_t *config, const char *location);
+int config_set_fileserve(xmlDocPtr doc, ice_config_t *config, const char *flag);
 xmlNodePtr config_xml_get_node(xmlDocPtr doc, const xmlChar *xml_path);
 
 #endif  /* __CFGFILE_H__ */
