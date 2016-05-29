@@ -588,6 +588,7 @@ void config_reread_config(void)
 
     config = config_grab_config(); /* Both to get the lock, and to be able
                                      to find out the config filename */
+
     xmlSetGenericErrorFunc("config", log_parse_failure);
     ret = config_parse_file(config->config_filename, &new_config);
     if(ret < 0) {
@@ -2337,27 +2338,24 @@ listener_t *config_get_listen_sock(ice_config_t *config, connection_t *con)
     return listener;
 }
 
-int config_doc_update_var(xmlDocPtr doc,
-                          ice_config_t *config,
-                          const char *name,
-                          const char *value)
+int config_doc_update_var(xmlDocPtr doc, const char *name, const char *value)
 {
     if (name == NULL || strlen(name) > 245) { /* path max length is 255 */
         return 1;
     }
 
     if (strcmp(name, "hostname") == 0) {
-        return config_set_hostname(doc, config, value);
+        return config_set_hostname(doc, value);
     } else if (strcmp(name, "location") == 0) {
-        return config_set_location(doc, config, value);
+        return config_set_location(doc, value);
     } else if (strcmp(name, "fileserve") == 0) {
-        return config_set_fileserve(doc, config, value);
+        return config_set_fileserve(doc, value);
     }
 
     return 1;
 }
 
-int config_set_hostname(xmlDocPtr doc, ice_config_t *config, const char *hostname)
+int config_set_hostname(xmlDocPtr doc, const char *hostname)
 {
     xmlNodePtr hostname_node;
     xmlChar *hostname_value;
@@ -2382,9 +2380,7 @@ int config_set_hostname(xmlDocPtr doc, ice_config_t *config, const char *hostnam
     return 0;
 }
 
-int config_set_location(xmlDocPtr doc,
-                        ice_config_t *config,
-                        const char *location)
+int config_set_location(xmlDocPtr doc, const char *location)
 {
     xmlNodePtr location_node;
     xmlChar *location_value;
@@ -2400,9 +2396,7 @@ int config_set_location(xmlDocPtr doc,
     return 0;
 }
 
-int config_set_fileserve(xmlDocPtr doc,
-                        ice_config_t *config,
-                        const char *flag)
+int config_set_fileserve(xmlDocPtr doc, const char *flag)
 {
     xmlNodePtr fileserve_node;
     xmlChar *fileserve_value;

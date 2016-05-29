@@ -1238,8 +1238,9 @@ static void command_edit_config(client_t *client, int response)
     errors = xmlNewChild(xmlnode, NULL, XMLSTR("errors"), NULL);
 
     config = config_get_config();
-
     config_doc = xmlParseFile(config->config_filename);
+    config_release_config();
+
     if (config_doc == NULL)
         return; /* config file is missing? */
 
@@ -1252,7 +1253,6 @@ static void command_edit_config(client_t *client, int response)
             form_var = avlnode->key;
             status = config_doc_update_var(
                 config_doc,
-                config,
                 (const char*)form_var->name,
                 (const char*)form_var->value);
 
@@ -1270,11 +1270,12 @@ static void command_edit_config(client_t *client, int response)
             /* TODO: error */
         }
 
-
+        global_lock();
         config_reread_config();
+        global_unlock();
     }
 
-    config_release_config();
+    config = config_get_config();
 
     general = xmlNewChild(xmlnode, NULL, XMLSTR("general"), NULL);
 
@@ -1321,6 +1322,10 @@ static void command_edit_config(client_t *client, int response)
     xmlNewChild(limits, NULL, XMLSTR("burst-size"), XMLSTR(tmp_str));
 
     admin_send_response(doc, client, response, EDIT_CONFIG_TRANSFORMED_REQUEST);
+
+    config_release_config();
+
+    printf("legit done\n");
 
     xmlFreeDoc(config_doc);
     xmlFreeDoc(doc);
