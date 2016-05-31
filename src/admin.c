@@ -1217,6 +1217,76 @@ static void command_updatemetadata(client_t *client,
     xmlFreeDoc(doc);
 }
 
+int admin_build(xmlDocPtr config_doc, xmlNodePtr parent, const char *setting)
+{
+    /* name for this function is temprary */
+
+    ice_config_t *config;
+    xmlNodePtr xml_node; /* node for a node from icecast.xml */
+    xmlNodePtr node;
+    const char *xml_value;
+    char xml_xpath[255]; /* xpath to variable in icecast.xml */
+    char config_value[255];
+
+    config = config_get_config();
+
+    /*
+     * TODO: this should be the same as cfgfile's config_doc_update_var
+     */
+    if (strcmp(setting, "hostname") == 0) {
+        strcpy(xml_xpath, "/icecast/hostname");
+        strcpy(config_value, config->hostname);
+    } else if (strcmp(setting, "location") == 0) {
+        strcpy(xml_xpath, "/icecast/location");
+        strcpy(config_value, config->location);
+    } else if (strcmp(setting, "fileserve") == 0) {
+        strcpy(xml_xpath, "/icecast/clients");
+        sprintf(config_value, "%i", config->fileserve);
+    } else if (strcmp(setting, "clients") == 0) {
+        strcpy(xml_xpath, "/icecast/limits/clients");
+        sprintf(config_value, "%i", config->client_limit);
+    } else if (strcmp(setting, "sources") == 0) {
+        strcpy(xml_xpath, "/icecast/limits/sources");
+        sprintf(config_value, "%i", config->source_limit);
+    } else if (strcmp(setting, "queue-size") == 0) {
+        strcpy(xml_xpath, "/icecast/limits/queue-size");
+        sprintf(config_value, "%i", config->queue_size_limit);
+    } else if (strcmp(setting, "client-timeout") == 0) {
+        strcpy(xml_xpath, "/icecast/limits/client-timeout");
+        sprintf(config_value, "%i", config->client_timeout);
+    } else if (strcmp(setting, "header-timeout") == 0) {
+        strcpy(xml_xpath, "/icecast/limits/header-timeout");
+        sprintf(config_value, "%i", config->header_timeout);
+    } else if (strcmp(setting, "source-timeout") == 0) {
+        strcpy(xml_xpath, "/icecast/limits/source-timeout");
+        sprintf(config_value, "%i", config->source_timeout);
+    } else if (strcmp(setting, "burst-size") == 0) {
+        strcpy(xml_xpath, "/icecast/limits/burst-size");
+        sprintf(config_value, "%i", config->burst_size);
+    } else {
+        return 1; /* unknown setting */
+    }
+
+    node = xmlNewChild(parent, NULL, XMLSTR(setting), NULL);
+
+    xml_node = config_xml_get_node(config_doc, XMLSTR(xml_xpath));
+    xml_value = (char *)xmlNodeGetContent(xml_node);
+
+    if (xml_value == NULL) {
+        xml_value = "";
+    }
+
+    if (strcmp(xml_value, config_value) == 0) {
+        xmlNodeSetContent(node, XMLSTR(config_value));
+    }
+
+    xmlSetProp(node, XMLSTR("placeholder"), XMLSTR(config_value));
+
+    config_release_config();
+
+    return 0;
+}
+
 static void command_edit_config(client_t *client, int response)
 {
     xmlDocPtr doc;
@@ -1225,8 +1295,6 @@ static void command_edit_config(client_t *client, int response)
     xmlNodePtr general;
     xmlNodePtr errors;
     xmlNodePtr limits;
-    xmlNodePtr tmp_node;
-    char tmp_str[15];
     ice_config_t *config;
     http_var_t *form_var;
     int status;
@@ -1270,62 +1338,35 @@ static void command_edit_config(client_t *client, int response)
             /* TODO: error */
         }
 
+        /*
+         * config_reread_config() workaround
+         */
         global_lock();
-        config_reread_config();
+        global.schedule_config_reread = 1;
         global_unlock();
     }
 
-    config = config_get_config();
-
     general = xmlNewChild(xmlnode, NULL, XMLSTR("general"), NULL);
 
-    const char *xml_val = (char *)xmlNodeGetContent(config_xml_get_node(config_doc, XMLSTR("/icecast/hostname")));
+    admin_build(config_doc, general, "hostname");
+    admin_build(config_doc, general, "location");
+    admin_build(config_doc, general, "fileserve");
 
-    tmp_node = xmlNewChild(general, NULL, XMLSTR("hostname"), NULL);
-
-    if (xml_val == NULL) {
-        xml_val = "";
-    }
-
-    if (strcmp(xml_val, config->hostname) == 0) {
-        xmlNodeSetContent(tmp_node, XMLSTR(config->hostname));
-    }
-
-    xmlSetProp(tmp_node, XMLSTR("placeholder"), XMLSTR(config->hostname));
-
-    xmlNewChild(general, NULL, XMLSTR("location"), XMLSTR(config->location));
-
-    sprintf(tmp_str, "%d", config->fileserve);
-    xmlNewChild(general, NULL, XMLSTR("fileserve"), XMLSTR(tmp_str));
+    config = config_get_config();
 
     limits = xmlNewChild(xmlnode, NULL, XMLSTR("limits"), NULL);
 
-    sprintf(tmp_str, "%d", config->client_limit);
-    xmlNewChild(limits, NULL, XMLSTR("clients"), XMLSTR(tmp_str));
-
-    sprintf(tmp_str, "%d", config->source_limit);
-    xmlNewChild(limits, NULL, XMLSTR("sources"), XMLSTR(tmp_str));
-
-    sprintf(tmp_str, "%d", config->queue_size_limit);
-    xmlNewChild(limits, NULL, XMLSTR("queue-size"), XMLSTR(tmp_str));
-
-    sprintf(tmp_str, "%d", config->client_timeout);
-    xmlNewChild(limits, NULL, XMLSTR("client-timeout"), XMLSTR(tmp_str));
-
-    sprintf(tmp_str, "%d", config->header_timeout);
-    xmlNewChild(limits, NULL, XMLSTR("header-timeout"), XMLSTR(tmp_str));
-
-    sprintf(tmp_str, "%d", config->source_timeout);
-    xmlNewChild(limits, NULL, XMLSTR("source-timeout"), XMLSTR(tmp_str));
-
-    sprintf(tmp_str, "%d", config->burst_size);
-    xmlNewChild(limits, NULL, XMLSTR("burst-size"), XMLSTR(tmp_str));
+    admin_build(config_doc, limits, "clients");
+    admin_build(config_doc, limits, "sources");
+    admin_build(config_doc, limits, "queue-size");
+    admin_build(config_doc, limits, "client-timeout");
+    admin_build(config_doc, limits, "header-timeout");
+    admin_build(config_doc, limits, "source-timeout");
+    admin_build(config_doc, limits, "burst-size");
 
     admin_send_response(doc, client, response, EDIT_CONFIG_TRANSFORMED_REQUEST);
 
     config_release_config();
-
-    printf("legit done\n");
 
     xmlFreeDoc(config_doc);
     xmlFreeDoc(doc);

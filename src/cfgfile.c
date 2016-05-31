@@ -2387,6 +2387,15 @@ int config_set_location(xmlDocPtr doc, const char *location)
 
     location_node = config_xml_get_node(doc, XMLSTR("/icecast/location"));
 
+    if (location_node == NULL) {
+        location_node = xmlNewChild(
+            xmlDocGetRootElement(doc),
+            NULL,
+            XMLSTR("location"),
+            XMLSTR(location));
+
+    }
+
     location_value = xmlNodeGetContent(location_node);
 
     if (strcmp((const char*)location_value, location) != 0) {
