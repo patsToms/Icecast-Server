@@ -290,6 +290,13 @@ int config_doc_update_var(xmlDocPtr doc, const char *name, const char *value);
 int config_set_hostname(xmlDocPtr doc, const char *hostname);
 int config_set_location(xmlDocPtr doc, const char *location);
 int config_set_fileserve(xmlDocPtr doc, const char *flag);
+int config_set_burst_size(xmlDocPtr doc, const char *burst_size);
+int config_set_source_timeout(xmlDocPtr doc, const char *source_timeout);
+int config_set_header_timeout(xmlDocPtr doc, const char *header_timeout);
+int config_set_client_timeout(xmlDocPtr doc, const char *client_timeout);
+int config_set_queue_size(xmlDocPtr doc, const char *queue_size);
+int config_set_sources(xmlDocPtr doc, const char *sources);
+int config_set_clients(xmlDocPtr doc, const char *clients);
 xmlNodePtr config_xml_get_node(xmlDocPtr doc, const xmlChar *xml_path);
 
 #endif  /* __CFGFILE_H__ */

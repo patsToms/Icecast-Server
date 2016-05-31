@@ -1240,7 +1240,7 @@ int admin_build(xmlDocPtr config_doc, xmlNodePtr parent, const char *setting)
         strcpy(xml_xpath, "/icecast/location");
         strcpy(config_value, config->location);
     } else if (strcmp(setting, "fileserve") == 0) {
-        strcpy(xml_xpath, "/icecast/clients");
+        strcpy(xml_xpath, "/icecast/fileserve");
         sprintf(config_value, "%i", config->fileserve);
     } else if (strcmp(setting, "clients") == 0) {
         strcpy(xml_xpath, "/icecast/limits/clients");

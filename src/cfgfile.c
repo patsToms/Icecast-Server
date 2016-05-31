@@ -2344,12 +2344,27 @@ int config_doc_update_var(xmlDocPtr doc, const char *name, const char *value)
         return 1;
     }
 
+    /* this needs refactoring together with config_set_* functions */
     if (strcmp(name, "hostname") == 0) {
         return config_set_hostname(doc, value);
     } else if (strcmp(name, "location") == 0) {
         return config_set_location(doc, value);
     } else if (strcmp(name, "fileserve") == 0) {
         return config_set_fileserve(doc, value);
+    } else if (strcmp(name, "limits.clients") == 0) {
+        return config_set_clients(doc, value);
+    }else if (strcmp(name, "limits.sources") == 0) {
+        return config_set_sources(doc, value);
+    }  else if (strcmp(name, "limits.queue-size") == 0) {
+        return config_set_queue_size(doc, value);
+    } else if (strcmp(name, "limits.client-timeout") == 0) {
+        return config_set_client_timeout(doc, value);
+    } else if (strcmp(name, "limits.header-timeout") == 0) {
+        return config_set_header_timeout(doc, value);
+    } else if (strcmp(name, "limits.source-timeout") == 0) {
+        return config_set_source_timeout(doc, value);
+    } else if (strcmp(name, "limits.burst-size") == 0) {
+        return config_set_burst_size(doc, value);
     }
 
     return 1;
@@ -2429,6 +2444,348 @@ int config_set_fileserve(xmlDocPtr doc, const char *flag)
     return 0;
 }
 
+int config_set_burst_size(xmlDocPtr doc, const char *burst_size)
+{
+    xmlNodePtr burst_size_node;
+    xmlNodePtr tmp_parent_node;
+    xmlNodePtr root_node;
+    xmlChar *burst_size_value;
+    char *endptr;
+
+    if ( (burst_size == NULL) || (*burst_size == '\0') ) {
+        return 2;
+    }
+
+    strtol(burst_size, &endptr, 10);
+
+    if (*endptr != '\0') {
+        return 1;
+    }
+
+    burst_size_node = config_xml_get_node(doc, XMLSTR("/icecast/limits/burst-size"));
+
+    if (burst_size_node == NULL) {
+
+        root_node = xmlDocGetRootElement(doc);
+        tmp_parent_node = config_xml_get_node(doc, XMLSTR("/icecast/limits"));
+
+        if (tmp_parent_node == NULL) {
+            tmp_parent_node = xmlNewChild(
+                root_node, NULL, XMLSTR("limits"), NULL);
+        }
+
+        burst_size_node = xmlNewChild(
+            tmp_parent_node,
+            NULL,
+            XMLSTR("burst-size"),
+            XMLSTR(burst_size));
+    }
+
+    burst_size_value = xmlNodeGetContent(burst_size_node);
+
+    if (strcmp((const char*)burst_size_value, burst_size) != 0) {
+        xmlNodeSetContent(burst_size_node, (const xmlChar *)burst_size);
+    }
+
+    return 0;
+}
+
+
+int config_set_source_timeout(xmlDocPtr doc, const char *source_timeout)
+{
+    xmlNodePtr source_timeout_node;
+    xmlNodePtr tmp_parent_node;
+    xmlNodePtr root_node;
+    xmlChar *source_timeout_value;
+    char *endptr;
+
+    if ( (source_timeout == NULL) || (*source_timeout == '\0') ) {
+        return 2;
+    }
+
+    /* using strtol to validate integer */
+    strtol(source_timeout, &endptr, 10);
+
+    if (*endptr != '\0') {
+        return 1;
+    }
+
+    source_timeout_node = config_xml_get_node(doc,
+            XMLSTR("/icecast/limits/source-timeout"));
+
+    if (source_timeout_node == NULL) {
+
+        root_node = xmlDocGetRootElement(doc);
+
+        tmp_parent_node = config_xml_get_node(doc, XMLSTR("/icecast/limits"));
+
+        if (tmp_parent_node == NULL) {
+            tmp_parent_node = xmlNewChild(
+                root_node, NULL, XMLSTR("limits"), NULL);
+        }
+
+        source_timeout_node = xmlNewChild(
+            tmp_parent_node,
+            NULL,
+            XMLSTR("source-timeout"),
+            XMLSTR(source_timeout));
+    }
+
+    source_timeout_value = xmlNodeGetContent(source_timeout_node);
+
+    if (strcmp((const char*)source_timeout_value, source_timeout) != 0) {
+        xmlNodeSetContent(source_timeout_node, (const xmlChar *)source_timeout);
+    }
+
+    return 0;
+}
+
+
+
+int config_set_header_timeout(xmlDocPtr doc, const char *header_timeout)
+{
+    xmlNodePtr header_timeout_node;
+    xmlNodePtr tmp_parent_node;
+    xmlNodePtr root_node;
+    xmlChar *header_timeout_value;
+    char *endptr;
+
+    if ( (header_timeout == NULL) || (*header_timeout == '\0') ) {
+        return 2;
+    }
+
+    /* using strtol to validate integer */
+    strtol(header_timeout, &endptr, 10);
+
+    if (*endptr != '\0') {
+        return 1;
+    }
+
+    header_timeout_node = config_xml_get_node(doc,
+            XMLSTR("/icecast/limits/header-timeout"));
+
+    if (header_timeout_node == NULL) {
+
+        root_node = xmlDocGetRootElement(doc);
+
+        tmp_parent_node = config_xml_get_node(doc, XMLSTR("/icecast/limits"));
+
+        if (tmp_parent_node == NULL) {
+            tmp_parent_node = xmlNewChild(
+                root_node, NULL, XMLSTR("limits"), NULL);
+        }
+
+        header_timeout_node = xmlNewChild(
+            tmp_parent_node,
+            NULL,
+            XMLSTR("header-timeout"),
+            XMLSTR(header_timeout));
+    }
+
+    header_timeout_value = xmlNodeGetContent(header_timeout_node);
+
+    if (strcmp((const char*)header_timeout_value, header_timeout) != 0) {
+        xmlNodeSetContent(header_timeout_node, (const xmlChar *)header_timeout);
+    }
+
+    return 0;
+}
+
+int config_set_client_timeout(xmlDocPtr doc, const char *client_timeout)
+{
+    xmlNodePtr client_timeout_node;
+    xmlNodePtr tmp_parent_node;
+    xmlNodePtr root_node;
+    xmlChar *client_timeout_value;
+    char *endptr;
+
+    if ( (client_timeout == NULL) || (*client_timeout == '\0') ) {
+        return 2;
+    }
+
+    /* using strtol to validate integer */
+    strtol(client_timeout, &endptr, 10);
+
+    if (*endptr != '\0') {
+        return 1;
+    }
+
+    client_timeout_node = config_xml_get_node(doc,
+            XMLSTR("/icecast/limits/client-timeout"));
+
+    if (client_timeout_node == NULL) {
+
+        root_node = xmlDocGetRootElement(doc);
+
+        tmp_parent_node = config_xml_get_node(doc, XMLSTR("/icecast/limits"));
+
+        if (tmp_parent_node == NULL) {
+            tmp_parent_node = xmlNewChild(
+                root_node, NULL, XMLSTR("limits"), NULL);
+        }
+
+        client_timeout_node = xmlNewChild(
+            tmp_parent_node,
+            NULL,
+            XMLSTR("client-timeout"),
+            XMLSTR(client_timeout));
+    }
+
+    client_timeout_value = xmlNodeGetContent(client_timeout_node);
+
+    if (strcmp((const char*)client_timeout_value, client_timeout) != 0) {
+        xmlNodeSetContent(client_timeout_node, (const xmlChar *)client_timeout);
+    }
+
+    return 0;
+}
+
+int config_set_queue_size(xmlDocPtr doc, const char *queue_size)
+{
+    xmlNodePtr queue_size_node;
+    xmlNodePtr tmp_parent_node;
+    xmlNodePtr root_node;
+    xmlChar *queue_size_value;
+    char *endptr;
+
+    if ( (queue_size == NULL) || (*queue_size == '\0') ) {
+        return 2;
+    }
+
+    /* using strtol to validate integer */
+    strtol(queue_size, &endptr, 10);
+
+    if (*endptr != '\0') {
+        return 1;
+    }
+
+    queue_size_node = config_xml_get_node(doc,
+            XMLSTR("/icecast/limits/queue-size"));
+
+    if (queue_size_node == NULL) {
+
+        root_node = xmlDocGetRootElement(doc);
+
+        tmp_parent_node = config_xml_get_node(doc, XMLSTR("/icecast/limits"));
+
+        if (tmp_parent_node == NULL) {
+            tmp_parent_node = xmlNewChild(
+                root_node, NULL, XMLSTR("limits"), NULL);
+        }
+
+        queue_size_node = xmlNewChild(
+            tmp_parent_node,
+            NULL,
+            XMLSTR("queue-size"),
+            XMLSTR(queue_size));
+    }
+
+    queue_size_value = xmlNodeGetContent(queue_size_node);
+
+    if (strcmp((const char*)queue_size_value, queue_size) != 0) {
+        xmlNodeSetContent(queue_size_node, (const xmlChar *)queue_size);
+    }
+
+    return 0;
+}
+
+int config_set_sources(xmlDocPtr doc, const char *sources)
+{
+    xmlNodePtr sources_node;
+    xmlNodePtr tmp_parent_node;
+    xmlNodePtr root_node;
+    xmlChar *sources_value;
+    char *endptr;
+
+    if ( (sources == NULL) || (*sources == '\0') ) {
+        return 2;
+    }
+
+    /* using strtol to validate integer */
+    strtol(sources, &endptr, 10);
+
+    if (*endptr != '\0') {
+        return 1;
+    }
+
+    sources_node = config_xml_get_node(doc,
+            XMLSTR("/icecast/limits/sources"));
+
+    if (sources_node == NULL) {
+
+        root_node = xmlDocGetRootElement(doc);
+
+        tmp_parent_node = config_xml_get_node(doc, XMLSTR("/icecast/limits"));
+
+        if (tmp_parent_node == NULL) {
+            tmp_parent_node = xmlNewChild(
+                root_node, NULL, XMLSTR("limits"), NULL);
+        }
+
+        sources_node = xmlNewChild(
+            tmp_parent_node,
+            NULL,
+            XMLSTR("sources"),
+            XMLSTR(sources));
+    }
+
+    sources_value = xmlNodeGetContent(sources_node);
+
+    if (strcmp((const char*)sources_value, sources) != 0) {
+        xmlNodeSetContent(sources_node, (const xmlChar *)sources);
+    }
+
+    return 0;
+}
+
+int config_set_clients(xmlDocPtr doc, const char *clients)
+{
+    xmlNodePtr clients_node;
+    xmlNodePtr tmp_parent_node;
+    xmlNodePtr root_node;
+    xmlChar *clients_value;
+    char *endptr;
+
+    if ( (clients == NULL) || (*clients == '\0') ) {
+        return 2;
+    }
+
+    /* using strtol to validate integer */
+    strtol(clients, &endptr, 10);
+
+    if (*endptr != '\0') {
+        return 1;
+    }
+
+    clients_node = config_xml_get_node(doc,
+            XMLSTR("/icecast/limits/clients"));
+
+    if (clients_node == NULL) {
+
+        root_node = xmlDocGetRootElement(doc);
+
+        tmp_parent_node = config_xml_get_node(doc, XMLSTR("/icecast/limits"));
+
+        if (tmp_parent_node == NULL) {
+            tmp_parent_node = xmlNewChild(
+                root_node, NULL, XMLSTR("limits"), NULL);
+        }
+
+        clients_node = xmlNewChild(
+            tmp_parent_node,
+            NULL,
+            XMLSTR("clients"),
+            XMLSTR(clients));
+    }
+
+    clients_value = xmlNodeGetContent(clients_node);
+
+    if (strcmp((const char*)clients_value, clients) != 0) {
+        xmlNodeSetContent(clients_node, (const xmlChar *)clients);
+    }
+
+    return 0;
+}
 
 xmlNodePtr config_xml_get_node(xmlDocPtr doc, const xmlChar *xml_path)
 {
